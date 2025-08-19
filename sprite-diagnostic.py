@@ -1,9 +1,11 @@
 from pathlib import Path
 import argparse
+import math
 import sys
 from dataclasses import dataclass, field
 from PIL import Image
 import xml.etree.ElementTree as ET
+from indexes import *
 
 from spritesheet import Spritesheet
 
@@ -73,16 +75,68 @@ def generate_diagnostic(available_dirs, leg_skin_name, torso_skin_name, head_ski
     print(f"  - Head:  '{available_dirs[head_skin_name]}'")
     
     sheet = Spritesheet(available_dirs[leg_skin_name], available_dirs[torso_skin_name],head_skin_name)
-    stacked_sprites = [
-        sheet.create_stacked_sprite(0, 0, 0),
-        sheet.create_stacked_sprite(1, 1, 1)
-    ]
+
+    # create unarmed walk and run animations for all directions
+    stacked_sprites = []
+    animations_to_generate = ['walk', 'run']
+    for animation in animations_to_generate:
+        for direction in Direction:
+            leg_indexes = get_leg_indexes(direction, animation)
+            torso_indexes = get_unarmed_indexes(direction, animation)
+            if not leg_indexes or not torso_indexes:
+                continue
+            head_index = get_head_indexes(direction)[0]
+            for leg_index, torso_index in zip(leg_indexes, torso_indexes):
+                stacked_sprites.append(sheet.create_stacked_sprite(leg_index, torso_index, head_index))
     
     # 5. Write the stacked sprite to a PNG file.
-    output_filename = f"{leg_skin_name}_{torso_skin_name}_{head_skin_name}.png"
-    # stacked_sprite.save(output_filename)
+    output_filename = f"{leg_skin_name}_{torso_skin_name}_{head_skin_name}_unarmed_walk_run.png"
     write_stacked_sprites(stacked_sprites, output_filename, max_cols=MAX_SPRITE_COLUMNS)
     print(f"\nSuccessfully created composite sprite: '{output_filename}'")
+
+    # --- Generate weapon animations ---
+    # For each leg stance (idle, crouch), generate shoot, rack, and reload animations.
+    weapon_configs = {
+        'pistol': {
+            'animations': ['shoot', 'rack', 'reload'],
+            'index_func': get_pistol_indexes,
+        },
+        'smg': {
+            'animations': ['shoot', 'rack', 'reload', 'run'],
+            'index_func': get_smg_indexes,
+        },
+        'shotgun': {
+            'animations': ['shoot', 'rack', 'reload'],
+            'index_func': get_shotgun_indexes,
+        },
+        'rifle': {
+            'animations': ['shoot', 'rack', 'reload'],
+            'index_func': get_rifle_indexes,
+        },
+    }
+    leg_stances = ['idle', 'crouch']
+
+    for weapon, config in weapon_configs.items():
+        for leg_stance in leg_stances:
+            all_weapon_sprites = []
+            for animation in config['animations']:
+                for direction in Direction:
+                    leg_indexes = get_leg_indexes(direction, leg_stance)
+                    torso_indexes = config['index_func'](direction, animation)
+
+                    if not leg_indexes or not torso_indexes:
+                        continue
+                    
+                    head_index = get_head_indexes(direction)[0]
+                    leg_index = leg_indexes[0] # For static stances, use the single leg frame.
+                    print(f"Generating {weapon} {animation} for {leg_stance} stance in direction {direction.name}\tindex: {leg_index}, torso: {torso_indexes[0]}, head: {head_index}")
+                    for torso_index in torso_indexes:
+                        all_weapon_sprites.append(sheet.create_stacked_sprite(leg_index, torso_index, head_index, torso_type=weapon))
+            
+            if all_weapon_sprites:
+                output_filename = f"{leg_skin_name}_{torso_skin_name}_{head_skin_name}_{weapon}_{leg_stance}_legs.png"
+                write_stacked_sprites(all_weapon_sprites, output_filename, max_cols=MAX_SPRITE_COLUMNS)
+                print(f"\nSuccessfully created composite sprite: '{output_filename}'")
 
 def write_stacked_sprites(stacked_sprites, output_filename, max_cols=10):
     """
@@ -93,7 +147,8 @@ def write_stacked_sprites(stacked_sprites, output_filename, max_cols=10):
 
     Args:
         stacked_sprites (list[Image.Image]): A list of PIL Image objects to combine.
-        output_filename (str): The path to save the final image to.
+    output_filename = f"{leg_skin_name}_{torso_skin_name}_{head_skin_name}.png"
+    # stacked_sprite.save(output_filename)
         max_cols (int): The maximum number of sprites per row.
     """
     if not stacked_sprites:
