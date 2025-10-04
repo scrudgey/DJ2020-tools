@@ -14,64 +14,14 @@ class Point:
 @dataclass
 class SpriteMetadata:
     """Holds metadata for a single sprite, like attachment points."""
-    head_sprite: int = 0
+    # Default to a common offset if not specified in the XML.
     head_offset: Point = field(default_factory=lambda: Point(0, 18))
-    override_head_direction: bool = False
     head_in_front_of_torso: bool = True
-    weapon_back_position: Point = field(default_factory=Point)
-    weapon_back_rotation: float = 0.0
-    weapon_back_in_front_of_torso: bool = False
-    weapon_visible: bool = True
-
 
 @dataclass
 class LegSpriteMetadata:
     """Holds metadata for a single leg sprite."""
     torso_offset: Point = field(default_factory=Point)
-
-
-def save_metadata_at_path(path: Path, metadata_list: list[SpriteMetadata]):
-    """Saves a list of SpriteMetadata objects to an XML file."""
-    root = ET.Element('ArrayOfSpriteData')
-    
-    for metadata in metadata_list:
-        sprite_data_elem = ET.SubElement(root, 'SpriteData')
-        
-        ET.SubElement(sprite_data_elem, 'headSprite').text = str(metadata.head_sprite)
-        
-        head_offset_elem = ET.SubElement(sprite_data_elem, 'headOffset')
-        ET.SubElement(head_offset_elem, 'x').text = str(metadata.head_offset.x)
-        ET.SubElement(head_offset_elem, 'y').text = str(metadata.head_offset.y)
-        
-        ET.SubElement(sprite_data_elem, 'overrideHeadDirection').text = str(metadata.override_head_direction).lower()
-        ET.SubElement(sprite_data_elem, 'headInFrontOfTorso').text = str(metadata.head_in_front_of_torso).lower()
-        
-        weapon_back_pos_elem = ET.SubElement(sprite_data_elem, 'weaponBackPosition')
-        ET.SubElement(weapon_back_pos_elem, 'x').text = str(metadata.weapon_back_position.x)
-        ET.SubElement(weapon_back_pos_elem, 'y').text = str(metadata.weapon_back_position.y)
-        
-        ET.SubElement(sprite_data_elem, 'weaponBackRotation').text = str(metadata.weapon_back_rotation)
-        ET.SubElement(sprite_data_elem, 'weaponBackInFrontOfTorso').text = str(metadata.weapon_back_in_front_of_torso).lower()
-        ET.SubElement(sprite_data_elem, 'weaponVisible').text = str(metadata.weapon_visible).lower()
-
-    # The C# XmlSerializer doesn't produce pretty-printed XML, so we won't either
-    # to maintain consistency.
-    tree = ET.ElementTree(root)
-    
-    # The XML declaration is not strictly needed by the C# deserializer,
-    # but it's good practice. The C# code uses UTF-8 by default.
-    tree.write(path, encoding='utf-8', xml_declaration=True)
-
-def save_leg_metadata_at_path(path: Path, metadata_list: list[LegSpriteMetadata]):
-    """Saves a list of LegSpriteMetadata objects to an XML file."""
-    root = ET.Element('ArrayOfSpriteDataLegs')
-    for metadata in metadata_list:
-        sprite_data_elem = ET.SubElement(root, 'SpriteDataLegs')
-        torso_offset_elem = ET.SubElement(sprite_data_elem, 'torsoOffset')
-        ET.SubElement(torso_offset_elem, 'x').text = str(metadata.torso_offset.x)
-        ET.SubElement(torso_offset_elem, 'y').text = str(metadata.torso_offset.y)
-    tree = ET.ElementTree(root)
-    tree.write(path, encoding='utf-8', xml_declaration=True)
 
 
 class Spritesheet:
@@ -190,36 +140,9 @@ class Spritesheet:
                 if x_elem is not None and y_elem is not None and x_elem.text is not None and y_elem.text is not None:
                     metadata.head_offset = Point(x=int(x_elem.text), y=int(y_elem.text))
             
-            head_sprite_elem = sprite_data_elem.find('headSprite')
-            if head_sprite_elem is not None and head_sprite_elem.text is not None:
-                metadata.head_sprite = int(head_sprite_elem.text)
-
-            override_head_direction_elem = sprite_data_elem.find('overrideHeadDirection')
-            if override_head_direction_elem is not None and override_head_direction_elem.text is not None:
-                metadata.override_head_direction = override_head_direction_elem.text.lower() == 'true'
-
             head_in_front_elem = sprite_data_elem.find('headInFrontOfTorso')
             if head_in_front_elem is not None and head_in_front_elem.text is not None:
                 metadata.head_in_front_of_torso = head_in_front_elem.text.lower() == 'true'
-
-            weapon_back_position_elem = sprite_data_elem.find('weaponBackPosition')
-            if weapon_back_position_elem is not None:
-                x_elem = weapon_back_position_elem.find('x')
-                y_elem = weapon_back_position_elem.find('y')
-                if x_elem is not None and y_elem is not None and x_elem.text is not None and y_elem.text is not None:
-                    metadata.weapon_back_position = Point(x=int(x_elem.text), y=int(y_elem.text))
-            
-            weapon_back_rotation_elem = sprite_data_elem.find('weaponBackRotation')
-            if weapon_back_rotation_elem is not None and weapon_back_rotation_elem.text is not None:
-                metadata.weapon_back_rotation = float(weapon_back_rotation_elem.text)
-
-            weapon_back_in_front_of_torso_elem = sprite_data_elem.find('weaponBackInFrontOfTorso')
-            if weapon_back_in_front_of_torso_elem is not None and weapon_back_in_front_of_torso_elem.text is not None:
-                metadata.weapon_back_in_front_of_torso = weapon_back_in_front_of_torso_elem.text.lower() == 'true'
-
-            weapon_visible_elem = sprite_data_elem.find('weaponVisible')
-            if weapon_visible_elem is not None and weapon_visible_elem.text is not None:
-                metadata.weapon_visible = weapon_visible_elem.text.lower() == 'true'
 
             metadata_list.append(metadata)
         
