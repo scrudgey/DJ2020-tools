@@ -57,6 +57,11 @@ def main():
         default='white',
         help="Set the background color of the output spritesheets. Default is white."
     )
+    parser.add_argument(
+        '--show-indices',
+        action='store_true',
+        help="If set, writes the leg, torso, and head index on each generated sprite."
+    )
     args = parser.parse_args()
 
     # If any part is specified, all parts must be specified.
@@ -65,7 +70,7 @@ def main():
             print("Error: To generate a character, you must specify all three parts: --legs, --torso, and --head.")
             print("Please provide values for the missing arguments.")
             sys.exit(1)
-        generate_diagnostic(available_dirs, args.legs, args.torso, args.head, args.color)
+        generate_diagnostic(available_dirs, args.legs, args.torso, args.head, args.color, args.show_indices)
     else:
         # Default behavior: list all available directories and exit.
         print("No body parts specified. Run with -h for options or provide parts to combine (e.g., --legs marine --torso marine --head marine).")
@@ -73,7 +78,7 @@ def main():
         for dir_name in available_dir_names:
             print(f"  - {dir_name}")
 
-def generate_diagnostic(available_dirs, leg_skin_name, torso_skin_name, head_skin_name, bg_color):
+def generate_diagnostic(available_dirs, leg_skin_name, torso_skin_name, head_skin_name, bg_color, show_indices):
     # At this point, we know all skin names are valid and have been provided.
     print("Processing selected parts:")
     print(f"  - Legs:  '{available_dirs[leg_skin_name]}'")
@@ -93,7 +98,7 @@ def generate_diagnostic(available_dirs, leg_skin_name, torso_skin_name, head_ski
                 continue
             head_index = get_head_indexes(direction)[0]
             for leg_index, torso_index in zip(leg_indexes, torso_indexes):
-                stacked_sprites.append(sheet.create_stacked_sprite(leg_index, torso_index, head_index))
+                stacked_sprites.append(sheet.create_stacked_sprite(leg_index, torso_index, head_index, show_indices=show_indices))
     
     # 5. Write the stacked sprite to a PNG file.
     output_filename = f"{leg_skin_name}_{torso_skin_name}_{head_skin_name}_unarmed_walk_run.png"
@@ -137,7 +142,7 @@ def generate_diagnostic(available_dirs, leg_skin_name, torso_skin_name, head_ski
                     leg_index = leg_indexes[0] # For static stances, use the single leg frame.
                     print(f"Generating {weapon} {animation} for {leg_stance} stance in direction {direction.name}\tindex: {leg_index}, torso: {torso_indexes[0]}, head: {head_index}")
                     for torso_index in torso_indexes:
-                        all_weapon_sprites.append(sheet.create_stacked_sprite(leg_index, torso_index, head_index, torso_type=weapon))
+                        all_weapon_sprites.append(sheet.create_stacked_sprite(leg_index, torso_index, head_index, torso_type=weapon, show_indices=show_indices))
             
             if all_weapon_sprites:
                 output_filename = f"{leg_skin_name}_{torso_skin_name}_{head_skin_name}_{weapon}_{leg_stance}_legs.png"

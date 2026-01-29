@@ -204,13 +204,13 @@ def get_pistol_indexes(direction: Direction, animation: str) -> list[int]:
             return [12]
     elif animation == 'shoot':
         if direction == Direction.down:
-            return [1, 2]
+            return [1, 2, 3]
         elif direction == Direction.rightDown:
-            return [4, 5]
+            return [4, 5, 6]
         elif direction == Direction.right:
-            return [7, 8]
+            return [7, 8, 9]
         elif direction == Direction.rightUp:
-            return [10, 11]
+            return [10, 11, 12]
         elif direction == Direction.up:
             return [13, 14]
     elif animation == 'reload':

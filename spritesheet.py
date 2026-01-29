@@ -2,7 +2,7 @@ from pathlib import Path
 import argparse
 import sys
 from dataclasses import dataclass, field
-from PIL import Image
+from PIL import Image,  ImageDraw, ImageFont
 import xml.etree.ElementTree as ET
 
 
@@ -225,7 +225,7 @@ class Spritesheet:
         
         return metadata_list
     
-    def create_stacked_sprite(self, leg_index, torso_index, head_index, torso_type='unarmed'):
+    def create_stacked_sprite(self, leg_index, torso_index, head_index, torso_type='unarmed', show_indices=False):
         torso_sprites = self.torso_sprites
         torso_metadata = self.unarmed_metadata_list
 
@@ -251,11 +251,11 @@ class Spritesheet:
         head_sprite = self.head_sprites[head_index]
         leg_metadata = self.leg_metadata_list[leg_index]
         # 4. Stack the sprites to create a single 64x64 sprite.
-        stacked_sprite = self.add_sprites(leg_sprite, torso_sprite, head_sprite, torso_data, leg_metadata)
+        stacked_sprite = self.add_sprites(leg_sprite, torso_sprite, head_sprite, torso_data, leg_metadata, leg_index, torso_index, head_index, show_indices)
         
         return stacked_sprite
     
-    def add_sprites(self, leg_sprite, torso_sprite, head_sprite, torso_metadata: SpriteMetadata, leg_metadata: LegSpriteMetadata):
+    def add_sprites(self, leg_sprite, torso_sprite, head_sprite, torso_metadata: SpriteMetadata, leg_metadata: LegSpriteMetadata, leg_index, torso_index, head_index, show_indices=False):
         """Overlays three sprites, respecting transparency, to create a single composite sprite with dynamic dimensions."""
         # The head sprite is 32x32 and needs to be centered on a 64x64 grid.
         # The offset from the XML is relative to the top-left of the torso sprite.
@@ -292,6 +292,19 @@ class Spritesheet:
             composite_image.paste(head_sprite, head_offset, head_sprite)
             composite_image.paste(torso_sprite, torso_offset, torso_sprite)
         
+        if show_indices:
+            # Draw the indices on the top-left corner
+            draw = ImageDraw.Draw(composite_image)
+            text = f"L:{leg_index}\nT:{torso_index}\nH:{head_index}"
+            try:
+                # Use a small truetype font if available
+                font = ImageFont.truetype("arial.ttf", 6)
+            except IOError:
+                # Fallback to a default bitmap font if arial isn't found
+                font = ImageFont.load_default()
+            
+            draw.text((0, 0), text, fill=(0, 0, 0, 255), font=font)
+
         return composite_image
     
 
