@@ -10,6 +10,23 @@ from PIL import Image, ImageDraw, ImageFont
 SPRITESHEET_DIRECTORY = '/Users/rfoltz/dev/game-dev/wetworks/Assets/Resources/sprites/spritesheets'
 HEAD_SPRITESHEET_DIRECTORY = '/Users/rfoltz/dev/game-dev/wetworks/Assets/Resources/sprites/spritesheets/head'
 
+
+SKINTONE_LIGHT_1 = "#EEC39A"
+SKINTONE_LIGHT_2 = "#D9A066"
+SKINTONE_LIGHT_3 = "#E0B187"
+SKINTONE_LIGHT_4 = "#D0A780"
+
+SKINTONE_DARK_1 = "#6E4E2C"
+SKINTONE_DARK_2 = "#523C27"
+
+RECOLOR_DARK = {
+    SKINTONE_LIGHT_1: SKINTONE_DARK_1,
+    SKINTONE_LIGHT_2: SKINTONE_DARK_2,
+    SKINTONE_LIGHT_3: SKINTONE_DARK_2,
+    SKINTONE_LIGHT_4: SKINTONE_DARK_2
+}
+
+
 def parse_hex_color(hex_str):
     """Parses a hex color string (e.g., '#FF0000' or 'FF0000') into an (R, G, B) tuple."""
     hex_str = hex_str.lstrip('#')
@@ -121,11 +138,21 @@ def main():
         action='store_true',
         help="Generate a diagnostic image showing the palette and pixel counts of the source images."
     )
+    parser.add_argument(
+        '--mass-recolor',
+        action='store_true',
+        help="Recolor all skins in the spritesheet directory from standard light to dark tones."
+    )
+    parser.add_argument(
+        '--analyze-head',
+        metavar='SKIN_ID',
+        help="Run palette diagnostic on a specific head skin."
+    )
 
     args = parser.parse_args()
 
-    if not args.replace and not args.palette:
-        parser.error("You must specify either --replace or --analyze-palette.")
+    if not args.replace and not args.palette and not args.mass_recolor and not args.analyze_head:
+        parser.error("You must specify --replace, --analyze-palette, --mass-recolor, or --analyze-head.")
 
     # Parse color replacements
     color_map = {}
@@ -145,6 +172,48 @@ def main():
                 sys.exit(1)
 
     base_dir = Path(SPRITESHEET_DIRECTORY)
+
+    if args.mass_recolor:
+        print("Starting mass recolor (Light -> Dark)...")
+        try:
+            # l1 = parse_hex_color(SKINTONE_LIGHT_1)
+            # l2 = parse_hex_color(SKINTONE_LIGHT_2)
+            # d1 = parse_hex_color(SKINTONE_DARK_1)
+            # d2 = parse_hex_color(SKINTONE_DARK_2)
+            # color_map = {l1: d1, l2: d2}
+            # print(f"  Map: {SKINTONE_LIGHT_1} -> {SKINTONE_DARK_1}")
+            # print(f"  Map: {SKINTONE_LIGHT_2} -> {SKINTONE_DARK_2}")
+            color_map = { parse_hex_color(key): parse_hex_color(value) for key, value in RECOLOR_DARK.items()}
+        except ValueError as e:
+            print(f"Error parsing constants: {e}")
+            sys.exit(1)
+
+        output_base = Path.cwd() / "recolored_spritesheets"
+        output_base.mkdir(exist_ok=True)
+
+        for item in base_dir.iterdir():
+            if item.is_dir():
+                skin_name = item.name
+                dest_dir_name = f"{skin_name}_skintone_2"
+                dest_dir = output_base / dest_dir_name
+                dest_dir.mkdir(exist_ok=True)
+
+                png_files = list(item.glob("*.png"))
+                if not png_files:
+                    continue
+
+                print(f"Processing '{skin_name}' -> '{dest_dir_name}' ({len(png_files)} files)")
+                for src_path in png_files:
+                    try:
+                        img = Image.open(src_path)
+                        new_img = replace_colors(img, color_map)
+                        new_img.save(dest_dir / src_path.name)
+                    except Exception as e:
+                        print(f"  Error processing '{src_path.name}': {e}")
+        
+        print(f"\nMass recolor complete. Output saved to '{output_base}'.")
+        sys.exit(0)
+    
     head_dir = Path(HEAD_SPRITESHEET_DIRECTORY)
     
     if not base_dir.exists():
@@ -184,6 +253,14 @@ def main():
         head_path = head_dir / f"{args.head}.png"
         if head_path.exists():
             files_to_process.append(head_path)
+        else:
+            print(f"Warning: Head spritesheet not found at '{head_path}'")
+
+    if args.analyze_head:
+        head_path = head_dir / f"{args.analyze_head}.png"
+        if head_path.exists():
+            files_to_process.append(head_path)
+            args.palette = True
         else:
             print(f"Warning: Head spritesheet not found at '{head_path}'")
 
