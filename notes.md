@@ -37,7 +37,6 @@ test pixel scaler in build
 
 
 # recolor
-
 1. determine a set of standardized skin tones
 2. mass apply the recoloring
     save output into its own directory
