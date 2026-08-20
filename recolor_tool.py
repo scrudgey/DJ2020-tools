@@ -176,13 +176,6 @@ def main():
     if args.mass_recolor:
         print("Starting mass recolor (Light -> Dark)...")
         try:
-            # l1 = parse_hex_color(SKINTONE_LIGHT_1)
-            # l2 = parse_hex_color(SKINTONE_LIGHT_2)
-            # d1 = parse_hex_color(SKINTONE_DARK_1)
-            # d2 = parse_hex_color(SKINTONE_DARK_2)
-            # color_map = {l1: d1, l2: d2}
-            # print(f"  Map: {SKINTONE_LIGHT_1} -> {SKINTONE_DARK_1}")
-            # print(f"  Map: {SKINTONE_LIGHT_2} -> {SKINTONE_DARK_2}")
             color_map = { parse_hex_color(key): parse_hex_color(value) for key, value in RECOLOR_DARK.items()}
         except ValueError as e:
             print(f"Error parsing constants: {e}")

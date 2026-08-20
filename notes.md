@@ -28,7 +28,7 @@ smg: (use both legs idle and legs crouching)
 
 . jack torso too high- should extend lower to cover.
 . scientist, security leg sprites are unfinished at their tops.
- . fix jack smg
+. fix jack smg
 . fix jack rifle
 . fix jack shotgun.
 
